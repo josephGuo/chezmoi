@@ -16,7 +16,7 @@ jobs:
     - name: Checkout target repo
       uses: actions/checkout@v6
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} # 使用你刚才设置的 Secret
+        token: ${{ secrets.SYNCTOKEN }} # 使用你刚才设置的 Secret
     
     # 第二步：运行同步 Action
     - name: Sync upstream changes
