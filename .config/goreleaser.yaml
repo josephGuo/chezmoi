@@ -65,8 +65,8 @@ builds:
   - riscv64
   - s390x
   goarm:
-  - '5'
-  - '6'
+  - '5,softfloat'
+  - '6,hardfloat'
   ldflags:
   - -s
   - -w
@@ -169,8 +169,16 @@ nfpms:
   formats:
   - archlinux
   - deb
+  - msix
   - rpm
   bindir: /usr/bin
+  msix:
+    publisher: 'CN=chezmoi.io'
+    properties:
+      logo: ./assets/images/logo-256px-square.png
+    applications:
+      - id: chezmoi
+        executable: chezmoi.exe
   overrides:
     deb:
       file_name_template: >-
