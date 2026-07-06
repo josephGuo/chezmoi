@@ -29,13 +29,12 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/bartventer/httpcache"
 	"github.com/betterleaks/betterleaks/detect"
 	"github.com/coreos/go-semver/semver"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/gregjones/httpcache"
-	"github.com/gregjones/httpcache/diskcache"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -208,6 +207,7 @@ type Config struct {
 	outputAbsPath    chezmoi.AbsPath
 	refreshExternals chezmoi.RefreshExternals
 	sourcePath       bool
+	errorOnConflict  bool
 	templateFuncs    template.FuncMap
 	useBuiltinDiff   bool
 
@@ -338,7 +338,6 @@ type configState struct {
 var (
 	chezmoiRelPath             = chezmoi.NewRelPath("chezmoi")
 	persistentStateFileRelPath = chezmoi.NewRelPath("chezmoistate.boltdb")
-	httpCacheDirRelPath        = chezmoi.NewRelPath("httpcache")
 
 	configStateKey = []byte("configState")
 
@@ -1157,8 +1156,11 @@ func (c *Config) defaultPreApplyFunc(
 		}
 	}
 
-	if mode == promptNone {
+	switch {
+	case mode == promptNone:
 		return nil
+	case mode == promptConflict && c.errorOnConflict:
+		return chezmoi.ExitCodeError(1)
 	}
 
 	// Now prompt based on choice made above
@@ -1631,22 +1633,25 @@ func (c *Config) getHTTPClient() (*http.Client, error) {
 		return c.httpClient, nil
 	}
 
-	httpCacheBasePath, err := c.baseSystem.RawPath(c.CacheDirAbsPath.Join(httpCacheDirRelPath))
+	cacheBasePath, err := c.baseSystem.RawPath(c.CacheDirAbsPath)
 	if err != nil {
 		return nil, err
 	}
-	httpCache := diskcache.New(httpCacheBasePath.String())
-	httpTransport := httpcache.NewTransport(httpCache)
-	c.httpClient = httpTransport.Client()
 
-	c.httpClient.Transport = newModifyHTTPRequestRoundTripper(
-		func(req *http.Request) (*http.Request, error) {
-			req = req.Clone(req.Context())
-			req.Header.Add("User-Agent", "chezmoi.io/"+c.version.String())
-			return req, nil
-		},
-		c.httpClient.Transport,
-	)
+	c.httpClient = &http.Client{
+		Transport: httpcache.NewTransport(
+			httpCacheScheme+"://"+cacheBasePath.String(),
+			httpcache.WithLogger(c.logger),
+			httpcache.WithUpstream(newModifyHTTPRequestRoundTripper(
+				func(req *http.Request) (*http.Request, error) {
+					req = req.Clone(req.Context())
+					req.Header.Add("User-Agent", "chezmoi.io/"+c.version.String())
+					return req, nil
+				},
+				http.DefaultTransport,
+			)),
+		),
+	}
 
 	return c.httpClient, nil
 }
@@ -1925,6 +1930,7 @@ func (c *Config) newRootCmd() (*cobra.Command, error) {
 	persistentFlags.VarP(&c.refreshExternals, "refresh-externals", "R", "Refresh external cache")
 	persistentFlags.Lookup("refresh-externals").NoOptDefVal = chezmoi.RefreshExternalsAlways.String()
 	persistentFlags.BoolVar(&c.sourcePath, "source-path", c.sourcePath, "Specify targets by source path")
+	persistentFlags.BoolVar(&c.errorOnConflict, "error-on-conflict", c.errorOnConflict, "Error on conflict")
 	persistentFlags.BoolVarP(&c.useBuiltinDiff, "use-builtin-diff", "", c.useBuiltinDiff, "Use builtin diff")
 
 	if err := chezmoierrors.Combine(
