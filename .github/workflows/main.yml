@@ -21,9 +21,9 @@ env:
   GOLANGCI_LINT_VERSION: 2.12.2 # https://github.com/golangci/golangci-lint/releases
   GORELEASER_VERSION: 2.17.0 # https://github.com/goreleaser/goreleaser/releases
   PYTHON_VERSION: '3.14' # https://www.python.org/downloads/
-  RAGE_VERSION: 0.11.2 # https://github.com/str4d/rage/releases
+  RAGE_VERSION: 0.12.0 # https://github.com/str4d/rage/releases
   SYFT_VERSION: 1.46.0 # https://github.com/anchore/syft/releases
-  UV_VERSION: 0.11.27 # https://github.com/astral-sh/uv/releases
+  UV_VERSION: 0.11.28 # https://github.com/astral-sh/uv/releases
   NO_MKDOCS_2_WARNING: 1
 jobs:
   changes:
@@ -70,10 +70,10 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
         upload-cache: false
-    - uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496   # codeql-bundle-v2.25.6
+    - uses: github/codeql-action/init@f58f0d11ebf5dedd870fab2f999275f7602cfa46   # codeql-bundle-v2.26.0
       with:
         languages: go
-    - uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496   # codeql-bundle-v2.25.6
+    - uses: github/codeql-action/analyze@f58f0d11ebf5dedd870fab2f999275f7602cfa46   # codeql-bundle-v2.26.0
   misspell:
     runs-on: ubuntu-22.04
     permissions:
@@ -299,7 +299,7 @@ jobs:
       with:
         cache-prefix: website-go
         go-version: ${{ env.GO_VERSION }}
-    - uses: astral-sh/setup-uv@f98e06938123ccabd21905ea5d0069192241f9f1   # v8.3.1
+    - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990   # v8.3.2
       with:
         enable-cache: false
         version: ${{ env.UV_VERSION }}
@@ -501,7 +501,7 @@ jobs:
       with:
         cache-prefix: website-go
         go-version: ${{ env.GO_VERSION }}
-    - uses: astral-sh/setup-uv@f98e06938123ccabd21905ea5d0069192241f9f1   # v8.3.1
+    - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990   # v8.3.2
       with:
         enable-cache: false
         version: ${{ env.UV_VERSION }}
