@@ -11,6 +11,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 
+	"chezmoi.io/chezmoi/v2/internal/chezmoi"
 	"chezmoi.io/chezmoi/v2/internal/chezmoilog"
 )
 
@@ -65,16 +66,23 @@ type onepasswordItem struct {
 }
 
 func (c *Config) onepasswordTemplateFunc(userArgs ...string) map[string]any {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	must(c.onepasswordCheckMode())
+
 	args := mustValue(c.newOnepasswordArgs([]string{"item", "get", "--format", "json"}, userArgs))
 	output := mustValue(c.onepasswordOutput(args, withSessionToken))
+
 	var data map[string]any
 	must(json.Unmarshal(output, &data))
 	return data
 }
 
 func (c *Config) onepasswordDetailsFieldsTemplateFunc(userArgs ...string) map[string]any {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	item := mustValue(c.onepasswordItem(userArgs))
+
 	result := make(map[string]any)
 	for _, field := range item.Fields {
 		if _, ok := field["section"]; ok {
@@ -93,15 +101,20 @@ func (c *Config) onepasswordDetailsFieldsTemplateFunc(userArgs ...string) map[st
 }
 
 func (c *Config) onepasswordDocumentTemplateFunc(userArgs ...string) string {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	must(c.onepasswordCheckMode())
 	if c.Onepassword.Mode == onepasswordModeConnect {
 		panic(fmt.Errorf("onepasswordDocument cannot be used in %s mode", onepasswordModeConnect))
 	}
+
 	args := mustValue(c.newOnepasswordArgs([]string{"document", "get"}, userArgs))
 	return string(mustValue(c.onepasswordOutput(args, withSessionToken)))
 }
 
 func (c *Config) onepasswordItemFieldsTemplateFunc(userArgs ...string) map[string]any {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	item := mustValue(c.onepasswordItem(userArgs))
 	result := make(map[string]any)
 	for _, field := range item.Fields {
@@ -219,6 +232,8 @@ func (c *Config) onepasswordOutput(args *onepasswordArgs, withSessionToken withS
 }
 
 func (c *Config) onepasswordReadTemplateFunc(url string, args ...string) string {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	must(c.onepasswordCheckMode())
 
 	onepasswordArgs := &onepasswordArgs{

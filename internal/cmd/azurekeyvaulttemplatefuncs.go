@@ -7,6 +7,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+
+	"chezmoi.io/chezmoi/v2/internal/chezmoi"
 )
 
 type azureKeyVault struct {
@@ -15,7 +17,7 @@ type azureKeyVault struct {
 }
 
 func (v *azureKeyVault) URL(vaultName string) string {
-	return fmt.Sprintf("https://%s.vault.azure.net/", vaultName)
+	return "https://" + vaultName + ".vault.azure.net/"
 }
 
 type azureKeyVaultConfig struct {
@@ -24,7 +26,7 @@ type azureKeyVaultConfig struct {
 	cred         *azidentity.DefaultAzureCredential
 }
 
-func (a *azureKeyVaultConfig) GetSecret(secretName, vaultName string) string {
+func (a *azureKeyVaultConfig) getSecret(secretName, vaultName string) string {
 	if a.vaults == nil {
 		a.vaults = make(map[string]*azureKeyVault)
 	}
@@ -57,6 +59,8 @@ func (a *azureKeyVaultConfig) GetSecret(secretName, vaultName string) string {
 }
 
 func (c *Config) azureKeyVaultTemplateFunc(args ...string) string {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	var secretName, vaultName string
 
 	switch len(args) {
@@ -71,5 +75,5 @@ func (c *Config) azureKeyVaultTemplateFunc(args ...string) string {
 		panic(fmt.Errorf("expected 1 or 2 arguments, got %d", len(args)))
 	}
 
-	return c.AzureKeyVault.GetSecret(secretName, vaultName)
+	return c.AzureKeyVault.getSecret(secretName, vaultName)
 }

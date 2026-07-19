@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"chezmoi.io/chezmoi/v2/internal/chezmoi"
 	"chezmoi.io/chezmoi/v2/internal/chezmoilog"
 )
 
@@ -17,6 +18,7 @@ type keeperConfig struct {
 }
 
 func (c *Config) keeperTemplateFunc(record string) map[string]any {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
 	output := mustValue(c.keeperOutput([]string{"get", "--format=json", record}))
 	var result map[string]any
 	must(json.Unmarshal(output, &result))
@@ -24,7 +26,10 @@ func (c *Config) keeperTemplateFunc(record string) map[string]any {
 }
 
 func (c *Config) keeperDataFieldsTemplateFunc(record string) map[string]any {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
+
 	output := mustValue(c.keeperOutput([]string{"get", "--format=json", record}))
+
 	var data struct {
 		Data struct {
 			Fields []struct {
@@ -34,6 +39,7 @@ func (c *Config) keeperDataFieldsTemplateFunc(record string) map[string]any {
 		} `json:"data"`
 	}
 	must(json.Unmarshal(output, &data))
+
 	result := make(map[string]any)
 	for _, field := range data.Data.Fields {
 		result[field.Type] = field.Value
@@ -42,6 +48,7 @@ func (c *Config) keeperDataFieldsTemplateFunc(record string) map[string]any {
 }
 
 func (c *Config) keeperFindPasswordTemplateFunc(record string) string {
+	chezmoi.SkipTemplateIf(c.skipSecrets)
 	output := mustValue(c.keeperOutput([]string{"find-password", record}))
 	return string(bytes.TrimSpace(output))
 }
